@@ -1,0 +1,91 @@
+version: "3.9"
+
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKIPER_TICK_TIME: 2000
+  
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    ports:
+      - "9092:9092"
+      - "29092:29092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    depends_on:
+      - zookeeper
+  
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+  
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+  
+  auth:
+    build: ./auth
+    ports:
+      - "8081:8081"
+    environment:
+      POSTGRES_DSN: postgres://postgres:postgres@db:5432/postgres?sslmode=disable
+      REDIS_ADDR: redis:6379
+    depends_on:
+      - db
+      - redis
+
+  payment:
+    build: ./payment
+    ports:
+      - "8080:8080"
+    environment:
+      POSTGRES_DSN: postgres://postgres:postgres@db:5432/postgres?sslmode=disable
+      KAFKA_BROKER: kafka:9092
+    depends_on:
+      - kafka
+      - db
+      - auth
+  
+  stub:
+    build: ./stub
+    ports:
+      - "9000:9000"
+  
+  integration:
+    build: ./integration
+    ports:
+      - "50051:50051"
+    environment:
+      EXTERNAL_URL: http://stub:9000/stub/payments
+    depends_on:
+      - stub
+  
+  payment-worker:
+    build: ./payment-worker
+    environment:
+      POSTGRES_DSN: postgres://postgres:postgres@db:5432/postgres?sslmode=disable
+      INTEGRATION_ADDR: integration:50051
+      KAFKA_BROKER: kafka:9092
+    depends_on:
+      - integration
+      - db
+  
+  nginx:
+    build: ./nginx
+    ports:
+      - "80:80"
+    depends_on:
+      - auth
+      - payment

@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package proto;
+
+service PaymentIntegration {
+    rpc ProcessPayment(Payment) returns (PaymentResponse);
+}
+
+message Payment {
+    string id = 1;
+    double amount = 2;
+    string to = 3;
+}
+
+message PaymentResponse {
+    string status = 1;
+}

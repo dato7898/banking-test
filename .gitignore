@@ -1,0 +1,56 @@
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Go build cache & compiled files
+*.a
+*.o
+*.lo
+*.la
+*.al
+*.pyc
+*.pyo
+*.pyd
+*.swp
+*.swo
+*.mod
+*.sum
+
+# Go workspace
+/bin/
+/pkg/
+/dist/
+
+# Go modules vendor directory
+/vendor/
+
+# Logs
+*.log
+
+# Coverage files
+*.cover
+*.coverprofile
+*.cov
+coverage.out
+
+# Dependency directories (sometimes generated)
+_gopath/
+.godeps/
+.gopath/
+vendor/
+
+# VS Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# OS files
+.DS_Store
+Thumbs.db
