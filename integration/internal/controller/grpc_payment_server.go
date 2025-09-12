@@ -20,6 +20,7 @@ func (c *PaymentController) ProcessPayment(ctx context.Context, req *pb.Payment)
 	p := &model.Payment{
 		ID:     req.Id,
 		Amount: req.Amount,
+		From:   req.From,
 		To:     req.To,
 	}
 

@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package proto;
+
+service AccountClient {
+    rpc GetAccount(GetAccountRequest) returns (Account);
+}
+
+message GetAccountRequest {
+    string iban = 1;
+}
+
+message Account {
+    string id = 1;
+    string iban = 2;
+    double amount = 3;
+    int32 userID = 4;
+}

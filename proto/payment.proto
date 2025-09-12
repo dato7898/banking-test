@@ -9,7 +9,8 @@ service PaymentIntegration {
 message Payment {
     string id = 1;
     double amount = 2;
-    string to = 3;
+    string from = 3;
+    string to = 4;
 }
 
 message PaymentResponse {

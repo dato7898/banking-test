@@ -23,12 +23,11 @@ func NewPaymentService(repo repository.PaymentRepository, producer repository.Ka
 func (s *paymentService) CreatePayment(userID int, req model.CreatePaymentRequest) (string, error) {
 	id := uuid.New().String()
 	payment := &model.Payment{
-		ID:       id,
-		Amount:   req.Amount,
-		Currency: req.Currency,
-		From:     req.From,
-		To:       req.To,
-		UserID:   userID,
+		ID:     id,
+		Amount: req.Amount,
+		From:   req.From,
+		To:     req.To,
+		UserID: userID,
 	}
 
 	if err := s.repo.Save(payment); err != nil {

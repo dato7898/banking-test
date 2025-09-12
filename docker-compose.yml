@@ -45,6 +45,15 @@ services:
     depends_on:
       - db
       - redis
+  
+  account:
+    build: ./account
+    ports:
+      - "50052:50052"
+    environment:
+      POSTGRES_DSN: postgres://postgres:postgres@db:5432/postgres?sslmode=disable
+    depends_on:
+      - db
 
   payment:
     build: ./payment
