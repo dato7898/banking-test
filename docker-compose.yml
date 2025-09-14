@@ -62,6 +62,7 @@ services:
     environment:
       POSTGRES_DSN: postgres://postgres:postgres@db:5432/postgres?sslmode=disable
       KAFKA_BROKER: kafka:9092
+      ACCOUNT_ADDR: account:50052
     depends_on:
       - kafka
       - db
