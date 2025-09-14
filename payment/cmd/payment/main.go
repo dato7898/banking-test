@@ -12,6 +12,7 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/jmoiron/sqlx"
 	"github.com/segmentio/kafka-go"
+	"google.golang.org/grpc"
 )
 
 func ensureTopic(brokerAddress string, topic string, partitions int, replicationFactor int) {
@@ -63,9 +64,16 @@ func main() {
 	}
 	defer kafkaWriter.Close()
 
+	conn, err := grpc.Dial(cfg.AccountAddr, grpc.WithInsecure())
+	if err != nil {
+		log.Fatal("failed to connect to integration service:", err)
+	}
+	defer conn.Close()
+	accountClient := repository.NewAccountClient(conn)
+
 	paymentRepo := repository.NewPaymentRepository(db)
 	kafkaProducer := repository.NewKafkaProducer(kafkaWriter)
-	paymentService := service.NewPaymentService(paymentRepo, kafkaProducer)
+	paymentService := service.NewPaymentService(paymentRepo, accountClient, kafkaProducer)
 	paymentHandler := controller.NewPaymentHandler(paymentService)
 	authHandler := controller.NewAuthHandler(cfg.JWTSecret)
 

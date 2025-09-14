@@ -8,6 +8,7 @@ type Config struct {
 	KafkaPaymentsTopic string
 	HTTPPort           string
 	JWTSecret          string
+	AccountAddr        string
 }
 
 func Load() *Config {
@@ -17,6 +18,7 @@ func Load() *Config {
 		KafkaPaymentsTopic: getenv("KAFKA_PAYMENTS_TOPIC", "payments"),
 		HTTPPort:           getenv("HTTP_PORT", "8080"),
 		JWTSecret:          getenv("JWT_SECRET", "super-secret-key"),
+		AccountAddr:        getenv("ACCOUNT_ADDR", "localhost:50052"),
 	}
 }
 
