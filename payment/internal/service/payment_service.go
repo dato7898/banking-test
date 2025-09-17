@@ -6,6 +6,8 @@ import (
 	"payment/internal/validator"
 
 	"github.com/google/uuid"
+
+	pb "payment/proto"
 )
 
 type PaymentService interface {
@@ -15,15 +17,22 @@ type PaymentService interface {
 type paymentService struct {
 	paymentRepo      repository.PaymentRepository
 	paymentValidator validator.PaymentValidator
+	accountClient    repository.AccountClient
 	producer         repository.KafkaProducer
 }
 
 func NewPaymentService(
 	paymentRepo repository.PaymentRepository,
 	paymentValidator validator.PaymentValidator,
+	accountClient repository.AccountClient,
 	producer repository.KafkaProducer,
 ) PaymentService {
-	return &paymentService{paymentRepo: paymentRepo, paymentValidator: paymentValidator, producer: producer}
+	return &paymentService{
+		paymentRepo:      paymentRepo,
+		paymentValidator: paymentValidator,
+		accountClient:    accountClient,
+		producer:         producer,
+	}
 }
 
 func (s *paymentService) CreatePayment(userID int, req model.CreatePaymentRequest) (string, error) {
@@ -33,9 +42,27 @@ func (s *paymentService) CreatePayment(userID int, req model.CreatePaymentReques
 		return "", err
 	}
 
-	tx, err := s.paymentRepo.BeginTx()
+	_, err := s.accountClient.Withdrawal(&pb.OperationRequest{Iban: req.From, Amount: req.Amount})
 	if err != nil {
 		return "", err
+	}
+
+	if err = s.processPaymentCreation(userID, id, req); err != nil {
+		// TODO переделать на вызов топика с ретраем
+		_, accErr := s.accountClient.Replenishment(&pb.OperationRequest{Iban: req.From, Amount: req.Amount})
+		if accErr != nil {
+			return "", accErr
+		}
+		return "", err
+	}
+
+	return id, nil
+}
+
+func (s *paymentService) processPaymentCreation(userID int, id string, req model.CreatePaymentRequest) error {
+	tx, err := s.paymentRepo.BeginTx()
+	if err != nil {
+		return err
 	}
 	defer tx.Rollback()
 
@@ -50,16 +77,15 @@ func (s *paymentService) CreatePayment(userID int, req model.CreatePaymentReques
 	}
 
 	if err := repo.Save(payment); err != nil {
-		return "", err
+		return err
 	}
 
 	if err := s.producer.Publish(nil, map[string]string{"id": id}); err != nil {
-		return "", err
+		return err
 	}
 
 	if err := tx.Commit(); err != nil {
-		return "", err
+		return err
 	}
-
-	return id, nil
+	return nil
 }

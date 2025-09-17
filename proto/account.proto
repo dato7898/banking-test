@@ -2,12 +2,21 @@ syntax = "proto3";
 
 package proto;
 
+import "google/protobuf/empty.proto";
+
 service AccountClient {
     rpc GetAccount(GetAccountRequest) returns (Account);
+    rpc Replenishment(OperationRequest) returns (google.protobuf.Empty);
+    rpc Withdrawal(OperationRequest) returns (google.protobuf.Empty);
 }
 
 message GetAccountRequest {
     string iban = 1;
+}
+
+message OperationRequest {
+    string iban = 1;
+    double amount = 2;
 }
 
 message Account {

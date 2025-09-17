@@ -75,7 +75,7 @@ func main() {
 	paymentRepo := repository.NewPaymentRepository(db)
 	kafkaProducer := repository.NewKafkaProducer(kafkaWriter)
 	paymentValidator := validator.NewPaymentValidator(accountClient)
-	paymentService := service.NewPaymentService(paymentRepo, paymentValidator, kafkaProducer)
+	paymentService := service.NewPaymentService(paymentRepo, paymentValidator, accountClient, kafkaProducer)
 	paymentHandler := controller.NewPaymentHandler(paymentService)
 	authHandler := controller.NewAuthHandler(cfg.JWTSecret)
 

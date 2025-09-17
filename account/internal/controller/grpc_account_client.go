@@ -4,6 +4,8 @@ import (
 	"account/internal/service"
 	pb "account/proto"
 	"context"
+
+	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 type AccountController struct {
@@ -29,4 +31,18 @@ func (c *AccountController) GetAccount(ctx context.Context, req *pb.GetAccountRe
 		Amount: a.Amount,
 		UserID: int32(a.UserID),
 	}, nil
+}
+
+func (c *AccountController) Replenishment(ctx context.Context, req *pb.OperationRequest) (*emptypb.Empty, error) {
+	if err := c.accountService.Replenishment(req.Iban, req.Amount); err != nil {
+		return &emptypb.Empty{}, err
+	}
+	return &emptypb.Empty{}, nil
+}
+
+func (c *AccountController) Withdrawal(ctx context.Context, req *pb.OperationRequest) (*emptypb.Empty, error) {
+	if err := c.accountService.Withdrawal(req.Iban, req.Amount); err != nil {
+		return &emptypb.Empty{}, err
+	}
+	return &emptypb.Empty{}, nil
 }
