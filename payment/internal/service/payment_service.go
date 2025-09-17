@@ -1,13 +1,11 @@
 package service
 
 import (
-	"errors"
 	"payment/internal/model"
 	"payment/internal/repository"
+	"payment/internal/validator"
 
 	"github.com/google/uuid"
-
-	pb "payment/proto"
 )
 
 type PaymentService interface {
@@ -15,45 +13,33 @@ type PaymentService interface {
 }
 
 type paymentService struct {
-	paymentRepo   repository.PaymentRepository
-	accountClient repository.AccountClient
-	producer      repository.KafkaProducer
+	paymentRepo      repository.PaymentRepository
+	paymentValidator validator.PaymentValidator
+	producer         repository.KafkaProducer
 }
 
 func NewPaymentService(
 	paymentRepo repository.PaymentRepository,
-	accountClient repository.AccountClient,
+	paymentValidator validator.PaymentValidator,
 	producer repository.KafkaProducer,
 ) PaymentService {
-	return &paymentService{paymentRepo: paymentRepo, accountClient: accountClient, producer: producer}
+	return &paymentService{paymentRepo: paymentRepo, paymentValidator: paymentValidator, producer: producer}
 }
 
 func (s *paymentService) CreatePayment(userID int, req model.CreatePaymentRequest) (string, error) {
 	id := uuid.New().String()
 
-	accountReq := &pb.GetAccountRequest{
-		Iban: req.From,
-	}
-
-	account, err := s.accountClient.GetAccount(accountReq)
-	if err != nil {
+	if err := s.paymentValidator.Validate(req, userID); err != nil {
 		return "", err
 	}
 
-	if account.UserID != int32(userID) {
-		return "", errors.New("account not found")
-	}
-
-	if account.Amount < req.Amount {
-		return "", errors.New("insufficient funds")
-	}
-
-	accountReq.Iban = req.To
-
-	account, err = s.accountClient.GetAccount(accountReq)
+	tx, err := s.paymentRepo.BeginTx()
 	if err != nil {
 		return "", err
 	}
+	defer tx.Rollback()
+
+	repo := s.paymentRepo.WithTx(tx)
 
 	payment := &model.Payment{
 		ID:     id,
@@ -63,11 +49,15 @@ func (s *paymentService) CreatePayment(userID int, req model.CreatePaymentReques
 		UserID: userID,
 	}
 
-	if err := s.paymentRepo.Save(payment); err != nil {
+	if err := repo.Save(payment); err != nil {
 		return "", err
 	}
 
-	if err := s.producer.Publish("payments", nil, map[string]string{"id": id}); err != nil {
+	if err := s.producer.Publish(nil, map[string]string{"id": id}); err != nil {
+		return "", err
+	}
+
+	if err := tx.Commit(); err != nil {
 		return "", err
 	}
 

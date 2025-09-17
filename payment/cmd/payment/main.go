@@ -6,6 +6,7 @@ import (
 	"payment/internal/controller"
 	"payment/internal/repository"
 	"payment/internal/service"
+	"payment/internal/validator"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -73,7 +74,8 @@ func main() {
 
 	paymentRepo := repository.NewPaymentRepository(db)
 	kafkaProducer := repository.NewKafkaProducer(kafkaWriter)
-	paymentService := service.NewPaymentService(paymentRepo, accountClient, kafkaProducer)
+	paymentValidator := validator.NewPaymentValidator(accountClient)
+	paymentService := service.NewPaymentService(paymentRepo, paymentValidator, kafkaProducer)
 	paymentHandler := controller.NewPaymentHandler(paymentService)
 	authHandler := controller.NewAuthHandler(cfg.JWTSecret)
 

@@ -9,7 +9,7 @@ import (
 )
 
 type KafkaProducer interface {
-	Publish(topic string, key, value interface{}) error
+	Publish(key, value interface{}) error
 }
 
 type kafkaProducer struct {
@@ -20,7 +20,7 @@ func NewKafkaProducer(writer *kafka.Writer) KafkaProducer {
 	return &kafkaProducer{writer: writer}
 }
 
-func (p *kafkaProducer) Publish(topic string, key, value interface{}) error {
+func (p *kafkaProducer) Publish(key, value interface{}) error {
 	payload, err := json.Marshal(value)
 	if err != nil {
 		return err
